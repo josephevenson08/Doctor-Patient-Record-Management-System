@@ -12,18 +12,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs"
 
 export default function SignupPage() {
   const [, setLocation] = useLocation();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [role, setRole] = useState("patient");
   
   // Form state
   const [formData, setFormData] = useState({
@@ -72,13 +65,6 @@ export default function SignupPage() {
               Join the patient management portal today
             </CardDescription>
           </div>
-
-          <Tabs defaultValue="patient" className="w-full max-w-[300px]" onValueChange={setRole}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="patient">Patient</TabsTrigger>
-              <TabsTrigger value="doctor">Doctor</TabsTrigger>
-            </TabsList>
-          </Tabs>
         </CardHeader>
 
         <CardContent className="pt-2">
@@ -135,33 +121,31 @@ export default function SignupPage() {
               />
             </div>
 
-            {role === "doctor" && (
-              <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
-                <Label htmlFor="specialty" className="text-slate-600 font-medium">Medical Specialty</Label>
-                <Select 
-                  value={formData.specialty} 
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, specialty: value }))}
-                >
-                  <SelectTrigger className="bg-slate-50 border-slate-200 focus:bg-white w-full">
-                    <SelectValue placeholder="Select your specialty" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="cardiology">Cardiology</SelectItem>
-                    <SelectItem value="dermatology">Dermatology</SelectItem>
-                    <SelectItem value="family-medicine">Family Medicine</SelectItem>
-                    <SelectItem value="gastroenterology">Gastroenterology</SelectItem>
-                    <SelectItem value="neurology">Neurology</SelectItem>
-                    <SelectItem value="oncology">Oncology</SelectItem>
-                    <SelectItem value="orthopedics">Orthopedics</SelectItem>
-                    <SelectItem value="pediatrics">Pediatrics</SelectItem>
-                    <SelectItem value="psychiatry">Psychiatry</SelectItem>
-                    <SelectItem value="radiology">Radiology</SelectItem>
-                    <SelectItem value="surgery">Surgery</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
+            <div className="space-y-2">
+              <Label htmlFor="specialty" className="text-slate-600 font-medium">Medical Specialty</Label>
+              <Select 
+                value={formData.specialty} 
+                onValueChange={(value) => setFormData(prev => ({ ...prev, specialty: value }))}
+              >
+                <SelectTrigger className="bg-slate-50 border-slate-200 focus:bg-white w-full">
+                  <SelectValue placeholder="Select your specialty" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cardiology">Cardiology</SelectItem>
+                  <SelectItem value="dermatology">Dermatology</SelectItem>
+                  <SelectItem value="family-medicine">Family Medicine</SelectItem>
+                  <SelectItem value="gastroenterology">Gastroenterology</SelectItem>
+                  <SelectItem value="neurology">Neurology</SelectItem>
+                  <SelectItem value="oncology">Oncology</SelectItem>
+                  <SelectItem value="orthopedics">Orthopedics</SelectItem>
+                  <SelectItem value="pediatrics">Pediatrics</SelectItem>
+                  <SelectItem value="psychiatry">Psychiatry</SelectItem>
+                  <SelectItem value="radiology">Radiology</SelectItem>
+                  <SelectItem value="surgery">Surgery</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
             <div className="space-y-2">
               <Label htmlFor="username" className="text-slate-600 font-medium">Username</Label>
