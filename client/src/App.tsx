@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth";
 import MfaPage from "@/pages/mfa";
+import SignupPage from "@/pages/signup";
 
 function Router() {
   return (
@@ -13,6 +14,7 @@ function Router() {
       <Route path="/" component={AuthPage} />
       <Route path="/login" component={AuthPage} />
       <Route path="/mfa" component={MfaPage} />
+      <Route path="/signup" component={SignupPage} />
       <Route component={NotFound} />
     </Switch>
   );
