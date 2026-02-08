@@ -79,16 +79,6 @@ export default function AuthPage() {
               </div>
             </div>
 
-            <div className="flex items-center space-x-2">
-              <Checkbox id="keep-signed-in" className="border-slate-300 data-[state=checked]:bg-primary data-[state=checked]:border-primary" />
-              <label
-                htmlFor="keep-signed-in"
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-slate-600 cursor-pointer"
-              >
-                Keep me signed in
-              </label>
-            </div>
-
             <Button 
               type="submit" 
               className="w-full h-11 text-base font-semibold shadow-md hover:shadow-lg transition-all duration-200" 
