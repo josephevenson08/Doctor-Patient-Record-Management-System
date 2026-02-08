@@ -35,9 +35,7 @@ export default function AuthPage() {
             <CardTitle className="text-2xl font-bold tracking-tight text-slate-900">
               Welcome back
             </CardTitle>
-            <CardDescription className="text-slate-500 text-base">
-              Sign in to your patient management portal
-            </CardDescription>
+            <CardDescription className="text-slate-500 text-base">Sign in to your Patient Management Portal</CardDescription>
           </div>
         </CardHeader>
 
@@ -115,7 +113,6 @@ export default function AuthPage() {
           </div>
         </CardFooter>
       </Card>
-      
       {/* Background decoration */}
       <div className="fixed inset-0 -z-10 pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-primary/5 blur-[100px]" />
