@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Eye, EyeOff, Check, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function AuthPage() {
+  const [, setLocation] = useLocation();
   const [showPassword, setShowPassword] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -19,6 +20,7 @@ export default function AuthPage() {
     // Simulate login delay
     setTimeout(() => {
       setIsLoading(false);
+      setLocation("/mfa");
     }, 1500);
   };
 

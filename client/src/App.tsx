@@ -5,12 +5,14 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth";
+import MfaPage from "@/pages/mfa";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={AuthPage} />
       <Route path="/login" component={AuthPage} />
+      <Route path="/mfa" component={MfaPage} />
       <Route component={NotFound} />
     </Switch>
   );
