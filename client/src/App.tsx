@@ -7,6 +7,7 @@ import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth";
 import MfaPage from "@/pages/mfa";
 import SignupPage from "@/pages/signup";
+import ForgotPasswordPage from "@/pages/forgot-password";
 
 function Router() {
   return (
@@ -15,6 +16,7 @@ function Router() {
       <Route path="/login" component={AuthPage} />
       <Route path="/mfa" component={MfaPage} />
       <Route path="/signup" component={SignupPage} />
+      <Route path="/forgot-password" component={ForgotPasswordPage} />
       <Route component={NotFound} />
     </Switch>
   );
