@@ -57,14 +57,7 @@ export default function AuthPage() {
             </div>
 
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password" className="text-slate-600 font-medium">Password</Label>
-                <Link href="/forgot-password">
-                  <span className="text-sm font-medium text-primary hover:text-primary/80 cursor-pointer transition-colors">
-                    Forgot password?
-                  </span>
-                </Link>
-              </div>
+              <Label htmlFor="password" className="text-slate-600 font-medium">Password</Label>
               <div className="relative">
                 <Input 
                   id="password" 
@@ -105,6 +98,14 @@ export default function AuthPage() {
               {isLoading ? "Signing in..." : "Sign In"}
               {!isLoading && <ArrowRight className="ml-2 w-4 h-4" />}
             </Button>
+
+            <div className="text-center">
+              <Link href="/forgot-password">
+                <span className="text-sm font-medium text-slate-500 hover:text-primary cursor-pointer transition-colors">
+                  Forgot password?
+                </span>
+              </Link>
+            </div>
           </form>
         </CardContent>
 
@@ -120,7 +121,7 @@ export default function AuthPage() {
           
           <div className="text-xs text-center text-slate-400 max-w-[280px] mx-auto leading-relaxed">
             Need help? Contact the <span className="font-medium text-slate-500 cursor-pointer hover:underline">IT Service Desk</span> at <br/>
-            <span className="font-mono text-slate-500">314-977-4000</span>
+            <span className="font-mono text-slate-500">xxx-xxx-xxxx</span>
           </div>
         </CardFooter>
       </Card>
