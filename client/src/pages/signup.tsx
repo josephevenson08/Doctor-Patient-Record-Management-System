@@ -50,7 +50,7 @@ export default function SignupPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 py-8">
-      <Card className="w-full max-w-[500px] shadow-xl border-border/50 bg-white/80 backdrop-blur-sm animate-in fade-in zoom-in-95 duration-500">
+      <Card className="w-full max-w-[500px] shadow-md border-slate-200 bg-white">
         <CardHeader className="space-y-4 flex flex-col items-center text-center pt-8 pb-2">
           {/* Icon Placeholder */}
           <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-2">
@@ -215,12 +215,6 @@ export default function SignupPage() {
           </div>
         </CardFooter>
       </Card>
-      
-      {/* Background decoration */}
-      <div className="fixed inset-0 -z-10 pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-primary/5 blur-[100px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-primary/10 blur-[100px]" />
-      </div>
     </div>
   );
 }
