@@ -48,28 +48,6 @@ export default function ReferralsPage() {
     } catch { return null; }
   });
 
-  const [lastPrefillSearch, setLastPrefillSearch] = useState("");
-
-  useEffect(() => {
-    if (!currentUser || !searchString || searchString === lastPrefillSearch) return;
-    const params = new URLSearchParams(searchString);
-    const patientId = params.get("patientId");
-    const notes = params.get("notes");
-    if (patientId) {
-      const now = new Date().toISOString().slice(0, 16);
-      setForm({
-        patientId,
-        referringDoctorId: currentUser.id.toString(),
-        referredDoctorId: "",
-        dateTime: now,
-        notes: notes || "",
-      });
-      setDialogOpen(true);
-      setLastPrefillSearch(searchString);
-      window.history.replaceState({}, "", "/dashboard/referrals");
-    }
-  }, [searchString, currentUser, lastPrefillSearch]);
-
   const { data: referrals = [], isLoading: loadingReferrals } = useQuery<Referral[]>({
     queryKey: ["/api/referrals"],
   });
@@ -82,32 +60,57 @@ export default function ReferralsPage() {
     queryKey: ["/api/doctors"],
   });
 
+  const matchedDoctorId = useMemo(() => {
+    if (!currentUser) return null;
+    const match = doctors.find(
+      (d) => d.firstName === currentUser.firstName && d.lastName === currentUser.lastName
+    );
+    return match ? match.id : null;
+  }, [currentUser, doctors]);
+
+  const myDoctorId = matchedDoctorId ?? (currentUser?.id ?? null);
+
+  const [lastPrefillSearch, setLastPrefillSearch] = useState("");
+
+  useEffect(() => {
+    if (!currentUser || !searchString || searchString === lastPrefillSearch) return;
+    const params = new URLSearchParams(searchString);
+    const patientId = params.get("patientId");
+    const notes = params.get("notes");
+    if (patientId) {
+      const now = new Date().toISOString().slice(0, 16);
+      setForm({
+        patientId,
+        referringDoctorId: myDoctorId ? myDoctorId.toString() : currentUser.id.toString(),
+        referredDoctorId: "",
+        dateTime: now,
+        notes: notes || "",
+      });
+      setDialogOpen(true);
+      setLastPrefillSearch(searchString);
+      window.history.replaceState({}, "", "/dashboard/referrals");
+    }
+  }, [searchString, currentUser, lastPrefillSearch, myDoctorId]);
+
   const combinedDoctors = useMemo(() => {
     const result: Array<{ id: number; firstName: string; lastName: string; specialty?: string | null }> = [...doctors];
-    try {
-      const stored = localStorage.getItem("mediportal_user");
-      if (stored) {
-        const user = JSON.parse(stored);
-        if (user && user.id && !result.some((d) => d.id === user.id)) {
-          result.push({
-            id: user.id,
-            firstName: user.firstName || "",
-            lastName: user.lastName || "",
-            specialty: user.specialty || null,
-          });
-        }
-      }
-    } catch {}
+    if (currentUser && !result.some((d) => d.firstName === currentUser.firstName && d.lastName === currentUser.lastName)) {
+      result.push({
+        id: currentUser.id,
+        firstName: currentUser.firstName || "",
+        lastName: currentUser.lastName || "",
+        specialty: currentUser.specialty || null,
+      });
+    }
     return result;
-  }, [doctors]);
+  }, [doctors, currentUser]);
 
   const createReferral = useMutation({
     mutationFn: (data: any) => {
-      const referringId = currentUser ? currentUser.id : parseInt(data.referringDoctorId);
       return apiRequest("POST", "/api/referrals", {
         ...data,
         patientId: parseInt(data.patientId),
-        referringDoctorId: referringId,
+        referringDoctorId: myDoctorId || parseInt(data.referringDoctorId),
         referredDoctorId: parseInt(data.referredDoctorId),
         dateTime: new Date(data.dateTime).toISOString(),
       });
@@ -144,16 +147,16 @@ export default function ReferralsPage() {
   };
 
   const isMyReferral = (r: Referral) => {
-    if (!currentUser) return true;
-    return r.referringDoctorId === currentUser.id || r.referredDoctorId === currentUser.id;
+    if (!myDoctorId) return true;
+    return r.referringDoctorId === myDoctorId || r.referredDoctorId === myDoctorId;
   };
 
   const filteredReferrals = useMemo(() => {
     let list = referrals.filter(isMyReferral);
     if (filterTab === "sent") {
-      list = list.filter((r) => currentUser && r.referringDoctorId === currentUser.id);
+      list = list.filter((r) => myDoctorId && r.referringDoctorId === myDoctorId);
     } else if (filterTab === "received") {
-      list = list.filter((r) => currentUser && r.referredDoctorId === currentUser.id);
+      list = list.filter((r) => myDoctorId && r.referredDoctorId === myDoctorId);
     }
     if (search) {
       const q = search.toLowerCase();
@@ -168,9 +171,9 @@ export default function ReferralsPage() {
   }, [referrals, filterTab, search, currentUser, patients, combinedDoctors]);
 
   const getReferralDirection = (r: Referral) => {
-    if (!currentUser) return "unknown";
-    if (r.referringDoctorId === currentUser.id) return "sent";
-    if (r.referredDoctorId === currentUser.id) return "received";
+    if (!myDoctorId) return "unknown";
+    if (r.referringDoctorId === myDoctorId) return "sent";
+    if (r.referredDoctorId === myDoctorId) return "received";
     return "unknown";
   };
 

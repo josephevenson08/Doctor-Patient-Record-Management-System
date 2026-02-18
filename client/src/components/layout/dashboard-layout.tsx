@@ -37,7 +37,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useQuery } from "@tanstack/react-query";
-import type { Patient, Referral } from "@shared/schema";
+import type { Patient, Referral, Doctor } from "@shared/schema";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [location, navigate] = useLocation();
@@ -73,12 +73,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     queryKey: ["/api/referrals"],
   });
 
-  const incomingReferralNotifications = useMemo(() => {
-    if (!user) return [];
-    return allReferrals.filter(
-      (r) => r.referredDoctorId === user.id && r.status === "pending"
+  const { data: allDoctors = [] } = useQuery<Doctor[]>({
+    queryKey: ["/api/doctors"],
+  });
+
+  const myDoctorId = useMemo(() => {
+    if (!user) return null;
+    const match = allDoctors.find(
+      (d) => d.firstName === user.firstName && d.lastName === user.lastName
     );
-  }, [allReferrals, user]);
+    return match ? match.id : user.id;
+  }, [user, allDoctors]);
+
+  const incomingReferralNotifications = useMemo(() => {
+    if (!myDoctorId) return [];
+    return allReferrals.filter(
+      (r) => r.referredDoctorId === myDoctorId && r.status === "pending"
+    );
+  }, [allReferrals, myDoctorId]);
 
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) return [];
