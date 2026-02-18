@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useSearch } from "wouter";
 import DashboardLayout from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,6 +29,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Referral, Patient, Doctor } from "@shared/schema";
 
 export default function ReferralsPage() {
+  const searchString = useSearch();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [form, setForm] = useState({
@@ -37,6 +39,24 @@ export default function ReferralsPage() {
     dateTime: "",
     notes: "",
   });
+
+  useEffect(() => {
+    const params = new URLSearchParams(searchString);
+    const patientId = params.get("patientId");
+    const notes = params.get("notes");
+    if (patientId) {
+      const now = new Date().toISOString().slice(0, 16);
+      setForm({
+        patientId,
+        referringDoctorId: "",
+        referredDoctorId: "",
+        dateTime: now,
+        notes: notes || "",
+      });
+      setDialogOpen(true);
+      window.history.replaceState({}, "", "/dashboard/referrals");
+    }
+  }, [searchString]);
 
   const { data: referrals = [], isLoading: loadingReferrals } = useQuery<Referral[]>({
     queryKey: ["/api/referrals"],

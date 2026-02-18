@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useLocation } from "wouter";
 import DashboardLayout from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +16,7 @@ import {
   Stethoscope,
   Calendar as CalendarIcon,
   Activity,
+  ArrowRightLeft,
 } from "lucide-react";
 import {
   Dialog,
@@ -37,6 +39,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { MedicalRecord, Patient, Doctor } from "@shared/schema";
 
 export default function RecordsPage() {
+  const [, navigate] = useLocation();
   const [selectedPatientId, setSelectedPatientId] = useState<number | null>(null);
   const [patientSearch, setPatientSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -253,8 +256,20 @@ export default function RecordsPage() {
                         </CardTitle>
                         <p className="text-sm text-slate-500">Patient: {getPatientName(record.patientId)}</p>
                       </div>
-                      <Button variant="ghost" size="sm" className="text-slate-400 hover:text-blue-600">
-                        <FileText className="w-4 h-4" />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                        data-testid={`button-send-referral-${record.id}`}
+                        onClick={() => {
+                          const params = new URLSearchParams();
+                          params.set("patientId", record.patientId.toString());
+                          params.set("notes", `Referral for ${record.diagnosis || "consultation"} - ${record.visitType || "Visit"}`);
+                          navigate(`/dashboard/referrals?${params.toString()}`);
+                        }}
+                      >
+                        <ArrowRightLeft className="w-3.5 h-3.5 mr-1.5" />
+                        Send Referral
                       </Button>
                     </div>
                   </CardHeader>

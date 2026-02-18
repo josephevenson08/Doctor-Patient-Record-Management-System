@@ -13,7 +13,10 @@ import {
   CheckCircle2,
   Clock,
   UserPlus,
-  AlertCircle
+  AlertCircle,
+  Info,
+  ShieldCheck,
+  RefreshCw
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -25,11 +28,18 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   useEffect(() => {
     const userStr = localStorage.getItem("mediportal_user");
@@ -131,7 +141,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <div className="relative hidden sm:block w-96">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <Input 
-                placeholder="Search patients, records, or doctors..." 
+                placeholder="Search patients and records..." 
                 className="pl-10 bg-slate-50 border-slate-200 focus:bg-white transition-all duration-200"
               />
             </div>
@@ -188,7 +198,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   </div>
                 </div>
                 <div className="p-3 border-t border-slate-100 text-center">
-                  <p className="text-xs text-blue-600 font-medium cursor-pointer hover:underline">View all notifications</p>
+                  <p
+                    className="text-xs text-blue-600 font-medium cursor-pointer hover:underline"
+                    data-testid="link-view-all-notifications"
+                    onClick={() => setNotificationsOpen(true)}
+                  >
+                    View all notifications
+                  </p>
                 </div>
               </PopoverContent>
             </Popover>
@@ -200,6 +216,79 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {children}
         </div>
       </main>
+
+      <Dialog open={notificationsOpen} onOpenChange={setNotificationsOpen}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-hidden flex flex-col" data-testid="dialog-all-notifications">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-semibold">All Notifications</DialogTitle>
+          </DialogHeader>
+          <div className="overflow-y-auto flex-1 -mx-6 px-6 space-y-1">
+            <div className="p-3 rounded-lg hover:bg-slate-50 flex gap-3 border border-slate-100">
+              <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                <UserPlus className="w-4 h-4 text-blue-600" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm text-slate-700">Welcome to <span className="font-medium">MediPortal</span></p>
+                <p className="text-xs text-slate-400 mt-0.5">Just now</p>
+              </div>
+            </div>
+            <div className="p-3 rounded-lg hover:bg-slate-50 flex gap-3 border border-slate-100">
+              <div className="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+                <CheckCircle2 className="w-4 h-4 text-green-600" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm text-slate-700">System is <span className="font-medium">fully operational</span></p>
+                <p className="text-xs text-slate-400 mt-0.5">2 min ago</p>
+              </div>
+            </div>
+            <div className="p-3 rounded-lg hover:bg-slate-50 flex gap-3 border border-slate-100">
+              <div className="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                <Clock className="w-4 h-4 text-amber-600" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm text-slate-700">Remember to review <span className="font-medium">pending referrals</span></p>
+                <p className="text-xs text-slate-400 mt-0.5">15 min ago</p>
+              </div>
+            </div>
+            <div className="p-3 rounded-lg hover:bg-slate-50 flex gap-3 border border-slate-100">
+              <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
+                <AlertCircle className="w-4 h-4 text-slate-500" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm text-slate-700">No critical alerts at this time</p>
+                <p className="text-xs text-slate-400 mt-0.5">1 hour ago</p>
+              </div>
+            </div>
+            <div className="p-3 rounded-lg hover:bg-slate-50 flex gap-3 border border-slate-100">
+              <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center shrink-0">
+                <ShieldCheck className="w-4 h-4 text-indigo-600" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm text-slate-700">Your account security is <span className="font-medium">up to date</span></p>
+                <p className="text-xs text-slate-400 mt-0.5">3 hours ago</p>
+              </div>
+            </div>
+            <div className="p-3 rounded-lg hover:bg-slate-50 flex gap-3 border border-slate-100">
+              <div className="w-9 h-9 rounded-full bg-cyan-100 flex items-center justify-center shrink-0">
+                <RefreshCw className="w-4 h-4 text-cyan-600" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm text-slate-700">System update completed <span className="font-medium">successfully</span></p>
+                <p className="text-xs text-slate-400 mt-0.5">Yesterday</p>
+              </div>
+            </div>
+            <div className="p-3 rounded-lg hover:bg-slate-50 flex gap-3 border border-slate-100">
+              <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                <Info className="w-4 h-4 text-blue-600" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm text-slate-700">New features available in <span className="font-medium">MediPortal v2.0</span></p>
+                <p className="text-xs text-slate-400 mt-0.5">2 days ago</p>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
