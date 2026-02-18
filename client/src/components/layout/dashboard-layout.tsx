@@ -16,13 +16,15 @@ import {
   AlertCircle,
   Info,
   ShieldCheck,
-  RefreshCw
+  RefreshCw,
+  ArrowRightLeft
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import {
   Popover,
   PopoverContent,
@@ -34,12 +36,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useQuery } from "@tanstack/react-query";
+import type { Patient, Referral } from "@shared/schema";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchFocused, setSearchFocused] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const userStr = localStorage.getItem("mediportal_user");
@@ -47,6 +54,39 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       try { setUser(JSON.parse(userStr)); } catch {}
     }
   }, []);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setSearchFocused(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const { data: allPatients = [] } = useQuery<Patient[]>({
+    queryKey: ["/api/patients"],
+  });
+
+  const { data: allReferrals = [] } = useQuery<Referral[]>({
+    queryKey: ["/api/referrals"],
+  });
+
+  const incomingReferralNotifications = useMemo(() => {
+    if (!user) return [];
+    return allReferrals.filter(
+      (r) => r.referredDoctorId === user.id && r.status === "pending"
+    );
+  }, [allReferrals, user]);
+
+  const searchResults = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    const q = searchQuery.toLowerCase();
+    return allPatients
+      .filter((p) => `${p.firstName} ${p.lastName}`.toLowerCase().includes(q))
+      .slice(0, 6);
+  }, [searchQuery, allPatients]);
 
   const navItems = [
     { label: "Overview", icon: LayoutDashboard, href: "/dashboard" },
@@ -138,12 +178,45 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <Menu className="w-6 h-6" />
             </Button>
             
-            <div className="relative hidden sm:block w-96">
+            <div className="relative hidden sm:block w-96" ref={searchRef}>
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <Input 
-                placeholder="Search patients and records..." 
+              <Input
+                data-testid="input-global-search"
+                placeholder="Search patients..."
                 className="pl-10 bg-slate-50 border-slate-200 focus:bg-white transition-all duration-200"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onFocus={() => setSearchFocused(true)}
               />
+              {searchFocused && searchQuery.trim() && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg border border-slate-200 shadow-lg z-50 overflow-hidden">
+                  {searchResults.length === 0 ? (
+                    <div className="p-4 text-center text-sm text-slate-500">No patients found</div>
+                  ) : (
+                    searchResults.map((patient) => (
+                      <div
+                        key={patient.id}
+                        data-testid={`search-result-patient-${patient.id}`}
+                        className="flex items-center gap-3 px-4 py-3 hover:bg-blue-50 cursor-pointer transition-colors border-b border-slate-50 last:border-0"
+                        onClick={() => {
+                          setSearchQuery("");
+                          setSearchFocused(false);
+                          navigate("/dashboard/patients");
+                        }}
+                      >
+                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                          <Users className="w-4 h-4 text-blue-600" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-slate-800">{patient.firstName} {patient.lastName}</p>
+                          {patient.email && <p className="text-xs text-slate-400">{patient.email}</p>}
+                        </div>
+                        <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100 text-xs font-medium">Patient</Badge>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -152,7 +225,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <PopoverTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative text-slate-500 hover:text-blue-600 hover:bg-blue-50" data-testid="button-notifications">
                   <Bell className="w-5 h-5" />
-                  <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+                  {incomingReferralNotifications.length > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-red-500 rounded-full border-2 border-white flex items-center justify-center text-[10px] font-bold text-white">
+                      {incomingReferralNotifications.length}
+                    </span>
+                  )}
+                  {incomingReferralNotifications.length === 0 && (
+                    <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+                  )}
                 </Button>
               </PopoverTrigger>
               <PopoverContent align="end" className="w-80 p-0" data-testid="dropdown-notifications">
@@ -160,6 +240,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <h3 className="font-semibold text-slate-900 text-sm">Notifications</h3>
                 </div>
                 <div className="max-h-80 overflow-y-auto">
+                  {incomingReferralNotifications.map((ref) => {
+                    const patient = allPatients.find((p) => p.id === ref.patientId);
+                    const patientName = patient ? `${patient.firstName} ${patient.lastName}` : `Patient #${ref.patientId}`;
+                    return (
+                      <div key={`ref-${ref.id}`} className="p-3 hover:bg-blue-50 border-b border-slate-50 flex gap-3 cursor-pointer" onClick={() => navigate("/dashboard/referrals")}>
+                        <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
+                          <ArrowRightLeft className="w-4 h-4 text-orange-600" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-slate-700">New referral for <span className="font-medium">{patientName}</span></p>
+                          <p className="text-xs text-slate-400 mt-0.5">Pending your review</p>
+                        </div>
+                      </div>
+                    );
+                  })}
                   <div className="p-3 hover:bg-slate-50 border-b border-slate-50 flex gap-3">
                     <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
                       <UserPlus className="w-4 h-4 text-blue-600" />
@@ -176,15 +271,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     <div>
                       <p className="text-sm text-slate-700">System is <span className="font-medium">fully operational</span></p>
                       <p className="text-xs text-slate-400 mt-0.5">2 min ago</p>
-                    </div>
-                  </div>
-                  <div className="p-3 hover:bg-slate-50 border-b border-slate-50 flex gap-3">
-                    <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
-                      <Clock className="w-4 h-4 text-amber-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-slate-700">Remember to review <span className="font-medium">pending referrals</span></p>
-                      <p className="text-xs text-slate-400 mt-0.5">15 min ago</p>
                     </div>
                   </div>
                   <div className="p-3 hover:bg-slate-50 flex gap-3">
@@ -223,6 +309,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <DialogTitle className="text-lg font-semibold">All Notifications</DialogTitle>
           </DialogHeader>
           <div className="overflow-y-auto flex-1 -mx-6 px-6 space-y-1">
+            {incomingReferralNotifications.map((ref) => {
+              const patient = allPatients.find((p) => p.id === ref.patientId);
+              const patientName = patient ? `${patient.firstName} ${patient.lastName}` : `Patient #${ref.patientId}`;
+              return (
+                <div key={`ref-dialog-${ref.id}`} className="p-3 rounded-lg hover:bg-orange-50 flex gap-3 border border-orange-200 bg-orange-50/50 cursor-pointer" onClick={() => { setNotificationsOpen(false); navigate("/dashboard/referrals"); }}>
+                  <div className="w-9 h-9 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
+                    <ArrowRightLeft className="w-4 h-4 text-orange-600" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm text-slate-700">New referral for <span className="font-medium">{patientName}</span></p>
+                    <p className="text-xs text-orange-500 mt-0.5 font-medium">Action required - pending your review</p>
+                  </div>
+                  <Badge className="bg-orange-100 text-orange-700 hover:bg-orange-100 text-xs self-center">New</Badge>
+                </div>
+              );
+            })}
             <div className="p-3 rounded-lg hover:bg-slate-50 flex gap-3 border border-slate-100">
               <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
                 <UserPlus className="w-4 h-4 text-blue-600" />
@@ -242,15 +344,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </div>
             </div>
             <div className="p-3 rounded-lg hover:bg-slate-50 flex gap-3 border border-slate-100">
-              <div className="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
-                <Clock className="w-4 h-4 text-amber-600" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm text-slate-700">Remember to review <span className="font-medium">pending referrals</span></p>
-                <p className="text-xs text-slate-400 mt-0.5">15 min ago</p>
-              </div>
-            </div>
-            <div className="p-3 rounded-lg hover:bg-slate-50 flex gap-3 border border-slate-100">
               <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
                 <AlertCircle className="w-4 h-4 text-slate-500" />
               </div>
@@ -266,24 +359,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <div className="flex-1">
                 <p className="text-sm text-slate-700">Your account security is <span className="font-medium">up to date</span></p>
                 <p className="text-xs text-slate-400 mt-0.5">3 hours ago</p>
-              </div>
-            </div>
-            <div className="p-3 rounded-lg hover:bg-slate-50 flex gap-3 border border-slate-100">
-              <div className="w-9 h-9 rounded-full bg-cyan-100 flex items-center justify-center shrink-0">
-                <RefreshCw className="w-4 h-4 text-cyan-600" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm text-slate-700">System update completed <span className="font-medium">successfully</span></p>
-                <p className="text-xs text-slate-400 mt-0.5">Yesterday</p>
-              </div>
-            </div>
-            <div className="p-3 rounded-lg hover:bg-slate-50 flex gap-3 border border-slate-100">
-              <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-                <Info className="w-4 h-4 text-blue-600" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm text-slate-700">New features available in <span className="font-medium">MediPortal v2.0</span></p>
-                <p className="text-xs text-slate-400 mt-0.5">2 days ago</p>
               </div>
             </div>
           </div>

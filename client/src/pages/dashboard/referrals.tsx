@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, Plus, ArrowRightLeft, Clock, CheckCircle2 } from "lucide-react";
+import { Search, Plus, ArrowRightLeft, Clock, CheckCircle2, ArrowDownLeft, ArrowUpRight } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -32,6 +32,7 @@ export default function ReferralsPage() {
   const searchString = useSearch();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [filterTab, setFilterTab] = useState<"all" | "sent" | "received">("all");
   const [form, setForm] = useState({
     patientId: "",
     referringDoctorId: "",
@@ -40,7 +41,17 @@ export default function ReferralsPage() {
     notes: "",
   });
 
+  const [currentUser, setCurrentUser] = useState<any>(() => {
+    try {
+      const raw = localStorage.getItem("mediportal_user");
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+  });
+
+  const [prefillHandled, setPrefillHandled] = useState(false);
+
   useEffect(() => {
+    if (prefillHandled || !currentUser) return;
     const params = new URLSearchParams(searchString);
     const patientId = params.get("patientId");
     const notes = params.get("notes");
@@ -48,15 +59,16 @@ export default function ReferralsPage() {
       const now = new Date().toISOString().slice(0, 16);
       setForm({
         patientId,
-        referringDoctorId: "",
+        referringDoctorId: currentUser.id.toString(),
         referredDoctorId: "",
         dateTime: now,
         notes: notes || "",
       });
       setDialogOpen(true);
+      setPrefillHandled(true);
       window.history.replaceState({}, "", "/dashboard/referrals");
     }
-  }, [searchString]);
+  }, [searchString, currentUser, prefillHandled]);
 
   const { data: referrals = [], isLoading: loadingReferrals } = useQuery<Referral[]>({
     queryKey: ["/api/referrals"],
@@ -90,13 +102,16 @@ export default function ReferralsPage() {
   }, [doctors]);
 
   const createReferral = useMutation({
-    mutationFn: (data: any) => apiRequest("POST", "/api/referrals", {
-      ...data,
-      patientId: parseInt(data.patientId),
-      referringDoctorId: parseInt(data.referringDoctorId),
-      referredDoctorId: parseInt(data.referredDoctorId),
-      dateTime: new Date(data.dateTime).toISOString(),
-    }),
+    mutationFn: (data: any) => {
+      const referringId = currentUser ? currentUser.id : parseInt(data.referringDoctorId);
+      return apiRequest("POST", "/api/referrals", {
+        ...data,
+        patientId: parseInt(data.patientId),
+        referringDoctorId: referringId,
+        referredDoctorId: parseInt(data.referredDoctorId),
+        dateTime: new Date(data.dateTime).toISOString(),
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/referrals"] });
       setDialogOpen(false);
@@ -104,7 +119,14 @@ export default function ReferralsPage() {
     },
   });
 
-  const processReferral = useMutation({
+  const acceptReferral = useMutation({
+    mutationFn: (id: number) => apiRequest("PATCH", `/api/referrals/${id}`, { status: "accepted" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/referrals"] });
+    },
+  });
+
+  const completeReferral = useMutation({
     mutationFn: (id: number) => apiRequest("PATCH", `/api/referrals/${id}`, { status: "completed" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/referrals"] });
@@ -121,14 +143,62 @@ export default function ReferralsPage() {
     return d ? `Dr. ${d.firstName} ${d.lastName}${d.specialty ? ` (${d.specialty})` : ""}` : `Doctor #${doctorId}`;
   };
 
-  const filteredReferrals = referrals.filter((r) => {
-    if (!search) return true;
-    const q = search.toLowerCase();
-    const patientName = getPatientName(r.patientId).toLowerCase();
-    const fromDoc = getDoctorLabel(r.referringDoctorId).toLowerCase();
-    const toDoc = getDoctorLabel(r.referredDoctorId).toLowerCase();
-    return patientName.includes(q) || fromDoc.includes(q) || toDoc.includes(q) || (r.notes?.toLowerCase().includes(q));
-  });
+  const isMyReferral = (r: Referral) => {
+    if (!currentUser) return true;
+    return r.referringDoctorId === currentUser.id || r.referredDoctorId === currentUser.id;
+  };
+
+  const filteredReferrals = useMemo(() => {
+    let list = referrals.filter(isMyReferral);
+    if (filterTab === "sent") {
+      list = list.filter((r) => currentUser && r.referringDoctorId === currentUser.id);
+    } else if (filterTab === "received") {
+      list = list.filter((r) => currentUser && r.referredDoctorId === currentUser.id);
+    }
+    if (search) {
+      const q = search.toLowerCase();
+      list = list.filter((r) => {
+        const patientName = getPatientName(r.patientId).toLowerCase();
+        const fromDoc = getDoctorLabel(r.referringDoctorId).toLowerCase();
+        const toDoc = getDoctorLabel(r.referredDoctorId).toLowerCase();
+        return patientName.includes(q) || fromDoc.includes(q) || toDoc.includes(q) || (r.notes?.toLowerCase().includes(q));
+      });
+    }
+    return list;
+  }, [referrals, filterTab, search, currentUser, patients, combinedDoctors]);
+
+  const getReferralDirection = (r: Referral) => {
+    if (!currentUser) return "unknown";
+    if (r.referringDoctorId === currentUser.id) return "sent";
+    if (r.referredDoctorId === currentUser.id) return "received";
+    return "unknown";
+  };
+
+  const getStatusBadge = (status: string | null) => {
+    const s = status || "pending";
+    switch (s) {
+      case "pending":
+        return <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50"><Clock className="w-3 h-3 mr-1" />Pending</Badge>;
+      case "accepted":
+        return <Badge className="bg-blue-600 hover:bg-blue-700"><CheckCircle2 className="w-3 h-3 mr-1" />Accepted</Badge>;
+      case "completed":
+        return <Badge className="bg-green-600 hover:bg-green-700"><CheckCircle2 className="w-3 h-3 mr-1" />Completed</Badge>;
+      default:
+        return <Badge variant="outline">{s}</Badge>;
+    }
+  };
+
+  const openCreateDialog = () => {
+    const now = new Date().toISOString().slice(0, 16);
+    setForm({
+      patientId: "",
+      referringDoctorId: currentUser ? currentUser.id.toString() : "",
+      referredDoctorId: "",
+      dateTime: now,
+      notes: "",
+    });
+    setDialogOpen(true);
+  };
 
   return (
     <DashboardLayout>
@@ -141,15 +211,42 @@ export default function ReferralsPage() {
           <Button
             data-testid="button-create-referral"
             className="bg-blue-600 hover:bg-blue-700 text-white shadow-md"
-            onClick={() => {
-              const now = new Date();
-              const localDatetime = now.toISOString().slice(0, 16);
-              setForm({ patientId: "", referringDoctorId: "", referredDoctorId: "", dateTime: localDatetime, notes: "" });
-              setDialogOpen(true);
-            }}
+            onClick={openCreateDialog}
           >
             <Plus className="w-4 h-4 mr-2" />
             Create Referral
+          </Button>
+        </div>
+
+        <div className="flex gap-2">
+          <Button
+            variant={filterTab === "all" ? "default" : "outline"}
+            size="sm"
+            data-testid="button-filter-all"
+            onClick={() => setFilterTab("all")}
+            className={filterTab === "all" ? "bg-blue-600 hover:bg-blue-700" : ""}
+          >
+            All
+          </Button>
+          <Button
+            variant={filterTab === "sent" ? "default" : "outline"}
+            size="sm"
+            data-testid="button-filter-sent"
+            onClick={() => setFilterTab("sent")}
+            className={filterTab === "sent" ? "bg-blue-600 hover:bg-blue-700" : ""}
+          >
+            <ArrowUpRight className="w-3.5 h-3.5 mr-1.5" />
+            Sent
+          </Button>
+          <Button
+            variant={filterTab === "received" ? "default" : "outline"}
+            size="sm"
+            data-testid="button-filter-received"
+            onClick={() => setFilterTab("received")}
+            className={filterTab === "received" ? "bg-blue-600 hover:bg-blue-700" : ""}
+          >
+            <ArrowDownLeft className="w-3.5 h-3.5 mr-1.5" />
+            Received
           </Button>
         </div>
 
@@ -186,67 +283,90 @@ export default function ReferralsPage() {
               ) : filteredReferrals.length === 0 ? (
                 <p className="text-center py-8 text-slate-500" data-testid="text-no-referrals">No referrals found.</p>
               ) : (
-                filteredReferrals.map((referral) => (
-                  <div key={referral.id} data-testid={`card-referral-${referral.id}`} className="group flex flex-col sm:flex-row gap-4 p-4 rounded-xl border border-slate-100 bg-white hover:border-blue-200 hover:shadow-md transition-all duration-200">
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 ${
-                      referral.status === 'pending' ? 'bg-amber-100 text-amber-600' : 'bg-green-100 text-green-600'
-                    }`}>
-                      <ArrowRightLeft className="w-5 h-5" />
-                    </div>
-
-                    <div className="flex-1 space-y-1">
-                      <div className="flex items-center justify-between">
-                        <h3 className="font-semibold text-slate-900">{getPatientName(referral.patientId)}</h3>
-                        <Badge variant={referral.status === 'pending' ? 'outline' : 'default'} className={
-                          referral.status === 'pending' ? 'text-amber-600 border-amber-200 bg-amber-50' : 'bg-green-600 hover:bg-green-700'
-                        }>
-                          {referral.status === 'pending' ? <Clock className="w-3 h-3 mr-1" /> : <CheckCircle2 className="w-3 h-3 mr-1" />}
-                          {(referral.status || "pending").charAt(0).toUpperCase() + (referral.status || "pending").slice(1)}
-                        </Badge>
+                filteredReferrals.map((referral) => {
+                  const direction = getReferralDirection(referral);
+                  const isIncoming = direction === "received";
+                  return (
+                    <div key={referral.id} data-testid={`card-referral-${referral.id}`} className="group flex flex-col sm:flex-row gap-4 p-4 rounded-xl border border-slate-100 bg-white hover:border-blue-200 hover:shadow-md transition-all duration-200">
+                      <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 ${
+                        isIncoming ? 'bg-orange-100 text-orange-600' :
+                        referral.status === 'pending' ? 'bg-amber-100 text-amber-600' :
+                        referral.status === 'accepted' ? 'bg-blue-100 text-blue-600' :
+                        'bg-green-100 text-green-600'
+                      }`}>
+                        {isIncoming ? <ArrowDownLeft className="w-5 h-5" /> : <ArrowUpRight className="w-5 h-5" />}
                       </div>
 
-                      <div className="grid sm:grid-cols-2 gap-4 text-sm text-slate-500 mt-2">
-                        <div className="flex flex-col">
-                          <span className="text-xs uppercase tracking-wider text-slate-400 font-semibold">From</span>
-                          <span className="text-slate-700">{getDoctorLabel(referral.referringDoctorId)}</span>
+                      <div className="flex-1 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-semibold text-slate-900">{getPatientName(referral.patientId)}</h3>
+                            <Badge variant="outline" className={isIncoming ? "text-orange-600 border-orange-200 bg-orange-50 text-xs" : "text-blue-600 border-blue-200 bg-blue-50 text-xs"}>
+                              {isIncoming ? "Incoming" : "Sent"}
+                            </Badge>
+                          </div>
+                          {getStatusBadge(referral.status)}
                         </div>
-                        <div className="flex flex-col">
-                          <span className="text-xs uppercase tracking-wider text-slate-400 font-semibold">To</span>
-                          <span className="text-slate-700">{getDoctorLabel(referral.referredDoctorId)}</span>
-                        </div>
-                      </div>
 
-                      {referral.notes && (
-                        <div className="pt-3 mt-3 border-t border-slate-50">
-                          <p className="text-sm text-slate-600">
-                            <span className="font-medium text-slate-900">Note:</span> {referral.notes}
+                        <div className="grid sm:grid-cols-2 gap-4 text-sm text-slate-500 mt-2">
+                          <div className="flex flex-col">
+                            <span className="text-xs uppercase tracking-wider text-slate-400 font-semibold">From</span>
+                            <span className="text-slate-700">{getDoctorLabel(referral.referringDoctorId)}</span>
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-xs uppercase tracking-wider text-slate-400 font-semibold">To</span>
+                            <span className="text-slate-700">{getDoctorLabel(referral.referredDoctorId)}</span>
+                          </div>
+                        </div>
+
+                        {referral.notes && (
+                          <div className="pt-3 mt-3 border-t border-slate-50">
+                            <p className="text-sm text-slate-600">
+                              <span className="font-medium text-slate-900">Note:</span> {referral.notes}
+                            </p>
+                          </div>
+                        )}
+
+                        {referral.dateTime && (
+                          <p className="text-xs text-slate-400 mt-1">
+                            Date: {new Date(referral.dateTime).toLocaleDateString()}
                           </p>
-                        </div>
-                      )}
+                        )}
+                      </div>
 
-                      {referral.dateTime && (
-                        <p className="text-xs text-slate-400 mt-1">
-                          Date: {new Date(referral.dateTime).toLocaleDateString()}
-                        </p>
-                      )}
+                      <div className="flex sm:flex-col justify-center gap-2 border-t sm:border-t-0 sm:border-l border-slate-100 pt-3 sm:pt-0 sm:pl-4">
+                        {isIncoming && referral.status === "pending" && (
+                          <Button
+                            size="sm"
+                            className="flex-1 bg-green-600 hover:bg-green-700"
+                            data-testid={`button-accept-referral-${referral.id}`}
+                            onClick={() => acceptReferral.mutate(referral.id)}
+                            disabled={acceptReferral.isPending}
+                          >
+                            Accept
+                          </Button>
+                        )}
+                        {isIncoming && referral.status === "accepted" && (
+                          <Button
+                            size="sm"
+                            className="flex-1 bg-blue-600 hover:bg-blue-700"
+                            data-testid={`button-complete-referral-${referral.id}`}
+                            onClick={() => completeReferral.mutate(referral.id)}
+                            disabled={completeReferral.isPending}
+                          >
+                            Complete
+                          </Button>
+                        )}
+                        {!isIncoming && referral.status === "pending" && (
+                          <Badge variant="outline" className="text-amber-600 border-amber-200 text-xs">Awaiting Response</Badge>
+                        )}
+                        {!isIncoming && referral.status === "accepted" && (
+                          <Badge variant="outline" className="text-blue-600 border-blue-200 text-xs">Accepted</Badge>
+                        )}
+                      </div>
                     </div>
-
-                    <div className="flex sm:flex-col justify-center gap-2 border-t sm:border-t-0 sm:border-l border-slate-100 pt-3 sm:pt-0 sm:pl-4">
-                      <Button variant="outline" size="sm" className="flex-1" data-testid={`button-view-referral-${referral.id}`}>View</Button>
-                      {referral.status === 'pending' && (
-                        <Button
-                          size="sm"
-                          className="flex-1 bg-blue-600 hover:bg-blue-700"
-                          data-testid={`button-process-referral-${referral.id}`}
-                          onClick={() => processReferral.mutate(referral.id)}
-                          disabled={processReferral.isPending}
-                        >
-                          Process
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </CardContent>
           </Card>
@@ -263,7 +383,7 @@ export default function ReferralsPage() {
             data-testid="form-create-referral"
             onSubmit={(e) => {
               e.preventDefault();
-              if (!form.patientId || !form.referringDoctorId || !form.referredDoctorId || !form.dateTime) return;
+              if (!form.patientId || !form.referredDoctorId || !form.dateTime || !currentUser) return;
               createReferral.mutate(form);
             }}
             className="space-y-4"
@@ -283,37 +403,30 @@ export default function ReferralsPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="ref-from">Referring Doctor <span className="text-red-500">*</span></Label>
-                <Select value={form.referringDoctorId} onValueChange={(v) => setForm({ ...form, referringDoctorId: v })} required>
-                  <SelectTrigger data-testid="select-referring-doctor">
-                    <SelectValue placeholder="Select doctor" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {combinedDoctors.map((d) => (
-                      <SelectItem key={d.id} value={d.id.toString()} data-testid={`select-referring-doctor-option-${d.id}`}>
-                        Dr. {d.firstName} {d.lastName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            <div className="space-y-2">
+              <Label htmlFor="ref-from">Referring Doctor</Label>
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700">
+                {currentUser
+                  ? `Dr. ${currentUser.firstName} ${currentUser.lastName}${currentUser.specialty ? ` (${currentUser.specialty})` : ""}`
+                  : "Loading..."}
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="ref-to">Referred To <span className="text-red-500">*</span></Label>
-                <Select value={form.referredDoctorId} onValueChange={(v) => setForm({ ...form, referredDoctorId: v })} required>
-                  <SelectTrigger data-testid="select-referred-doctor">
-                    <SelectValue placeholder="Select doctor" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {combinedDoctors.map((d) => (
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="ref-to">Refer To <span className="text-red-500">*</span></Label>
+              <Select value={form.referredDoctorId} onValueChange={(v) => setForm({ ...form, referredDoctorId: v })} required>
+                <SelectTrigger data-testid="select-referred-doctor">
+                  <SelectValue placeholder="Select specialist to refer to" />
+                </SelectTrigger>
+                <SelectContent>
+                  {combinedDoctors
+                    .filter((d) => !currentUser || d.id !== currentUser.id)
+                    .map((d) => (
                       <SelectItem key={d.id} value={d.id.toString()} data-testid={`select-referred-doctor-option-${d.id}`}>
-                        Dr. {d.firstName} {d.lastName}
+                        Dr. {d.firstName} {d.lastName}{d.specialty ? ` (${d.specialty})` : ""}
                       </SelectItem>
                     ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="ref-dateTime">Date & Time <span className="text-red-500">*</span></Label>
@@ -325,7 +438,7 @@ export default function ReferralsPage() {
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-              <Button type="submit" data-testid="button-submit-referral" className="bg-blue-600 hover:bg-blue-700" disabled={createReferral.isPending || !form.patientId || !form.referringDoctorId || !form.referredDoctorId || !form.dateTime}>
+              <Button type="submit" data-testid="button-submit-referral" className="bg-blue-600 hover:bg-blue-700" disabled={createReferral.isPending || !form.patientId || !form.referredDoctorId || !form.dateTime || !currentUser}>
                 {createReferral.isPending ? "Creating..." : "Create Referral"}
               </Button>
             </DialogFooter>
