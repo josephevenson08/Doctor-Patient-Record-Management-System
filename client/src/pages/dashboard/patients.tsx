@@ -32,6 +32,21 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Patient } from "@shared/schema";
 
+const formatPhoneNumber = (value: string) => {
+  const digits = value.replace(/\D/g, "");
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6, 10)}`;
+};
+
+const formatName = (value: string) => {
+  return value.replace(/[^a-zA-Z\s\-']/g, "");
+};
+
+const formatEmail = (value: string) => {
+  return value.replace(/[^a-zA-Z0-9@._\-+]/g, "");
+};
+
 export default function PatientsPage() {
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -216,11 +231,11 @@ export default function PatientsPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="firstName">First Name</Label>
-                <Input data-testid="input-firstName" id="firstName" required value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} />
+                <Input data-testid="input-firstName" id="firstName" required maxLength={50} value={form.firstName} onChange={(e) => setForm({ ...form, firstName: formatName(e.target.value) })} placeholder="John" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="lastName">Last Name</Label>
-                <Input data-testid="input-lastName" id="lastName" required value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} />
+                <Input data-testid="input-lastName" id="lastName" required maxLength={50} value={form.lastName} onChange={(e) => setForm({ ...form, lastName: formatName(e.target.value) })} placeholder="Doe" />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -245,25 +260,25 @@ export default function PatientsPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input data-testid="input-email" id="email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+                <Input data-testid="input-email" id="email" type="email" maxLength={100} value={form.email} onChange={(e) => setForm({ ...form, email: formatEmail(e.target.value) })} placeholder="patient@email.com" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="phone">Phone</Label>
-                <Input data-testid="input-phone" id="phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+                <Input data-testid="input-phone" id="phone" type="tel" maxLength={14} value={form.phone} onChange={(e) => setForm({ ...form, phone: formatPhoneNumber(e.target.value) })} placeholder="(555) 555-5555" />
               </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="address">Address</Label>
-              <Input data-testid="input-address" id="address" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
+              <Input data-testid="input-address" id="address" maxLength={200} value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} placeholder="123 Main St, City, State ZIP" />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="emergencyName">Emergency Contact Name</Label>
-                <Input data-testid="input-emergencyName" id="emergencyName" value={form.emergencyName} onChange={(e) => setForm({ ...form, emergencyName: e.target.value })} />
+                <Input data-testid="input-emergencyName" id="emergencyName" maxLength={100} value={form.emergencyName} onChange={(e) => setForm({ ...form, emergencyName: formatName(e.target.value) })} placeholder="Jane Doe" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="emergencyPhone">Emergency Phone</Label>
-                <Input data-testid="input-emergencyPhone" id="emergencyPhone" value={form.emergencyPhone} onChange={(e) => setForm({ ...form, emergencyPhone: e.target.value })} />
+                <Input data-testid="input-emergencyPhone" id="emergencyPhone" type="tel" maxLength={14} value={form.emergencyPhone} onChange={(e) => setForm({ ...form, emergencyPhone: formatPhoneNumber(e.target.value) })} placeholder="(555) 555-5555" />
               </div>
             </div>
             <DialogFooter>

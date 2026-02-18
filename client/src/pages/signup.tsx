@@ -40,10 +40,17 @@ export default function SignupPage() {
     return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6, 10)}`;
   };
 
+  const formatName = (value: string) => value.replace(/[^a-zA-Z\s\-']/g, "");
+  const formatEmail = (value: string) => value.replace(/[^a-zA-Z0-9@._\-+]/g, "");
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
     if (id === "phone") {
       setFormData(prev => ({ ...prev, phone: formatPhoneNumber(value) }));
+    } else if (id === "firstName" || id === "lastName") {
+      setFormData(prev => ({ ...prev, [id]: formatName(value) }));
+    } else if (id === "email") {
+      setFormData(prev => ({ ...prev, email: formatEmail(value) }));
     } else {
       setFormData(prev => ({ ...prev, [id]: value }));
     }
@@ -122,6 +129,7 @@ export default function SignupPage() {
                   value={formData.firstName}
                   onChange={handleChange}
                   required
+                  maxLength={50}
                 />
               </div>
               <div className="space-y-2">
@@ -133,6 +141,7 @@ export default function SignupPage() {
                   value={formData.lastName}
                   onChange={handleChange}
                   required
+                  maxLength={50}
                 />
               </div>
             </div>
@@ -147,6 +156,7 @@ export default function SignupPage() {
                 value={formData.email}
                 onChange={handleChange}
                 required
+                maxLength={100}
               />
             </div>
 
@@ -160,6 +170,7 @@ export default function SignupPage() {
                 value={formData.phone}
                 onChange={handleChange}
                 required
+                maxLength={14}
               />
             </div>
 

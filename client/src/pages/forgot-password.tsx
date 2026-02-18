@@ -9,6 +9,13 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 type RecoveryMethod = "sms" | "email" | null;
 type Step = "choose" | "form" | "success";
 
+const formatPhoneNumber = (value: string) => {
+  const digits = value.replace(/\D/g, "");
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6, 10)}`;
+};
+
 export default function ForgotPasswordPage() {
   const [step, setStep] = useState<Step>("choose");
   const [method, setMethod] = useState<RecoveryMethod>(null);
@@ -133,10 +140,11 @@ export default function ForgotPasswordPage() {
                 <Input
                   id="phone"
                   type="tel"
-                  placeholder="+1 (555) 000-0000"
+                  placeholder="(555) 555-5555"
                   className="h-11 bg-slate-50 border-slate-200 focus:bg-white transition-all duration-200"
+                  maxLength={14}
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={(e) => setPhone(formatPhoneNumber(e.target.value))}
                   required
                   data-testid="input-phone"
                 />
