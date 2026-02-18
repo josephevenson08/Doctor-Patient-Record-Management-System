@@ -176,7 +176,11 @@ export async function registerRoutes(
 
   app.post("/api/referrals", async (req, res) => {
     try {
-      const data = insertReferralSchema.parse(req.body);
+      const body = { ...req.body };
+      if (body.dateTime && typeof body.dateTime === "string") {
+        body.dateTime = new Date(body.dateTime);
+      }
+      const data = insertReferralSchema.parse(body);
       const referral = await storage.createReferral(data);
       return res.status(201).json(referral);
     } catch (e) {

@@ -9,13 +9,22 @@ import {
   Bell,
   Search,
   Menu,
-  X
+  X,
+  CheckCircle2,
+  Clock,
+  UserPlus,
+  AlertCircle
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
@@ -129,10 +138,60 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
 
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" className="relative text-slate-500 hover:text-blue-600 hover:bg-blue-50">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-            </Button>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative text-slate-500 hover:text-blue-600 hover:bg-blue-50" data-testid="button-notifications">
+                  <Bell className="w-5 h-5" />
+                  <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-80 p-0" data-testid="dropdown-notifications">
+                <div className="p-4 border-b border-slate-100">
+                  <h3 className="font-semibold text-slate-900 text-sm">Notifications</h3>
+                </div>
+                <div className="max-h-80 overflow-y-auto">
+                  <div className="p-3 hover:bg-slate-50 border-b border-slate-50 flex gap-3">
+                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                      <UserPlus className="w-4 h-4 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-slate-700">Welcome to <span className="font-medium">MediPortal</span></p>
+                      <p className="text-xs text-slate-400 mt-0.5">Just now</p>
+                    </div>
+                  </div>
+                  <div className="p-3 hover:bg-slate-50 border-b border-slate-50 flex gap-3">
+                    <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+                      <CheckCircle2 className="w-4 h-4 text-green-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-slate-700">System is <span className="font-medium">fully operational</span></p>
+                      <p className="text-xs text-slate-400 mt-0.5">2 min ago</p>
+                    </div>
+                  </div>
+                  <div className="p-3 hover:bg-slate-50 border-b border-slate-50 flex gap-3">
+                    <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                      <Clock className="w-4 h-4 text-amber-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-slate-700">Remember to review <span className="font-medium">pending referrals</span></p>
+                      <p className="text-xs text-slate-400 mt-0.5">15 min ago</p>
+                    </div>
+                  </div>
+                  <div className="p-3 hover:bg-slate-50 flex gap-3">
+                    <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
+                      <AlertCircle className="w-4 h-4 text-slate-500" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-slate-700">No critical alerts at this time</p>
+                      <p className="text-xs text-slate-400 mt-0.5">1 hour ago</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-3 border-t border-slate-100 text-center">
+                  <p className="text-xs text-blue-600 font-medium cursor-pointer hover:underline">View all notifications</p>
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
         </header>
 
