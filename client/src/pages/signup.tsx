@@ -12,11 +12,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 export default function SignupPage() {
   const [, setLocation] = useLocation();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
   
   // Form state
   const [formData, setFormData] = useState({
@@ -35,17 +38,45 @@ export default function SignupPage() {
     setFormData(prev => ({ ...prev, [id]: value }));
   };
 
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (formData.password !== formData.confirmPassword) {
+      toast({
+        title: "Validation Error",
+        description: "Passwords do not match",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
-    
-    // Simulate signup delay
-    setTimeout(() => {
-      setIsLoading(false);
-      // Redirect to login or dashboard after successful signup
-      alert("Account created successfully!");
+    try {
+      const { confirmPassword, ...registrationData } = formData;
+      await apiRequest("POST", "/api/auth/register", registrationData);
+      toast({
+        title: "Success",
+        description: "Account created successfully!",
+      });
       setLocation("/login");
-    }, 1500);
+    } catch (error: any) {
+      const message = error?.message || "Registration failed";
+      if (message.startsWith("409:")) {
+        toast({
+          title: "Registration Failed",
+          description: "Username already exists",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: message,
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
