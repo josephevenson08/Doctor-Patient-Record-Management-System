@@ -48,10 +48,10 @@ export default function ReferralsPage() {
     } catch { return null; }
   });
 
-  const [prefillHandled, setPrefillHandled] = useState(false);
+  const [lastPrefillSearch, setLastPrefillSearch] = useState("");
 
   useEffect(() => {
-    if (prefillHandled || !currentUser) return;
+    if (!currentUser || !searchString || searchString === lastPrefillSearch) return;
     const params = new URLSearchParams(searchString);
     const patientId = params.get("patientId");
     const notes = params.get("notes");
@@ -65,10 +65,10 @@ export default function ReferralsPage() {
         notes: notes || "",
       });
       setDialogOpen(true);
-      setPrefillHandled(true);
+      setLastPrefillSearch(searchString);
       window.history.replaceState({}, "", "/dashboard/referrals");
     }
-  }, [searchString, currentUser, prefillHandled]);
+  }, [searchString, currentUser, lastPrefillSearch]);
 
   const { data: referrals = [], isLoading: loadingReferrals } = useQuery<Referral[]>({
     queryKey: ["/api/referrals"],

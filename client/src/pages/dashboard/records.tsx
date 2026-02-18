@@ -215,6 +215,25 @@ export default function RecordsPage() {
                 )}
               </div>
             </CardContent>
+            {selectedPatientId !== null && (
+              <div className="px-6 pb-6">
+                <Button
+                  data-testid="button-process-to-referral"
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-md"
+                  onClick={() => {
+                    const patient = patients.find((p) => p.id === selectedPatientId);
+                    const patientName = patient ? `${patient.firstName} ${patient.lastName}` : "";
+                    const params = new URLSearchParams();
+                    params.set("patientId", selectedPatientId.toString());
+                    params.set("notes", `Referral for ${patientName}`);
+                    navigate(`/dashboard/referrals?${params.toString()}`);
+                  }}
+                >
+                  <ArrowRightLeft className="w-4 h-4 mr-2" />
+                  Process to Referral
+                </Button>
+              </div>
+            )}
           </Card>
 
           {/* Records List */}
