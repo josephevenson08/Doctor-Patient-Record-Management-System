@@ -9,6 +9,11 @@ import MfaPage from "@/pages/mfa";
 import SignupPage from "@/pages/signup";
 import ForgotPasswordPage from "@/pages/forgot-password";
 
+import DashboardHome from "@/pages/dashboard/home";
+import PatientsPage from "@/pages/dashboard/patients";
+import RecordsPage from "@/pages/dashboard/records";
+import ReferralsPage from "@/pages/dashboard/referrals";
+
 function Router() {
   return (
     <Switch>
@@ -17,6 +22,13 @@ function Router() {
       <Route path="/mfa" component={MfaPage} />
       <Route path="/signup" component={SignupPage} />
       <Route path="/forgot-password" component={ForgotPasswordPage} />
+      
+      {/* Dashboard Routes */}
+      <Route path="/dashboard" component={DashboardHome} />
+      <Route path="/dashboard/patients" component={PatientsPage} />
+      <Route path="/dashboard/records" component={RecordsPage} />
+      <Route path="/dashboard/referrals" component={ReferralsPage} />
+      
       <Route component={NotFound} />
     </Switch>
   );

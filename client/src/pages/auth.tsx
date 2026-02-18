@@ -20,7 +20,7 @@ export default function AuthPage() {
     // Simulate login delay
     setTimeout(() => {
       setIsLoading(false);
-      setLocation("/mfa");
+      setLocation("/dashboard"); // Changed from /mfa to /dashboard for direct access
     }, 1500);
   };
 

@@ -37,8 +37,7 @@ export default function MfaPage() {
     // Simulate verification delay
     setTimeout(() => {
       setIsLoading(false);
-      // Here you would redirect to the dashboard
-      alert("Verification successful!"); 
+      setLocation("/dashboard"); 
     }, 1500);
   };
 
