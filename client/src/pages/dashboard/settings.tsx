@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import DashboardLayout from "@/components/layout/dashboard-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +11,21 @@ import { User, Lock, Bell, LogOut } from "lucide-react";
 export default function SettingsPage() {
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [smsNotifications, setSmsNotifications] = useState(false);
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const userStr = localStorage.getItem("mediportal_user");
+    if (userStr) {
+      try {
+        setUser(JSON.parse(userStr));
+      } catch {}
+    }
+  }, []);
+
+  const capitalize = (str: string) => {
+    if (!str) return "";
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  };
 
   return (
     <DashboardLayout>
@@ -34,7 +49,7 @@ export default function SettingsPage() {
                   <Label className="text-slate-600">First Name</Label>
                   <Input
                     data-testid="input-first-name"
-                    value="John"
+                    value={user?.firstName || ""}
                     readOnly
                     className="bg-slate-50 border-slate-200 text-slate-900"
                   />
@@ -43,7 +58,7 @@ export default function SettingsPage() {
                   <Label className="text-slate-600">Last Name</Label>
                   <Input
                     data-testid="input-last-name"
-                    value="Smith"
+                    value={user?.lastName || ""}
                     readOnly
                     className="bg-slate-50 border-slate-200 text-slate-900"
                   />
@@ -53,7 +68,7 @@ export default function SettingsPage() {
                 <Label className="text-slate-600">Email</Label>
                 <Input
                   data-testid="input-email"
-                  value="dr.smith@mediportal.com"
+                  value={user?.email || ""}
                   readOnly
                   className="bg-slate-50 border-slate-200 text-slate-900"
                 />
@@ -63,7 +78,7 @@ export default function SettingsPage() {
                   <Label className="text-slate-600">Phone</Label>
                   <Input
                     data-testid="input-phone"
-                    value="(555) 123-4567"
+                    value={user?.phone || ""}
                     readOnly
                     className="bg-slate-50 border-slate-200 text-slate-900"
                   />
@@ -72,7 +87,7 @@ export default function SettingsPage() {
                   <Label className="text-slate-600">Specialty</Label>
                   <Input
                     data-testid="input-specialty"
-                    value="Cardiology"
+                    value={user?.specialty ? capitalize(user.specialty.replace("-", " ")) : ""}
                     readOnly
                     className="bg-slate-50 border-slate-200 text-slate-900"
                   />

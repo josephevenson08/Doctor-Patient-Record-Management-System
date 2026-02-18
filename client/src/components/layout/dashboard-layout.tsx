@@ -11,7 +11,7 @@ import {
   Menu,
   X
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -20,6 +20,14 @@ import { Input } from "@/components/ui/input";
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const userStr = localStorage.getItem("mediportal_user");
+    if (userStr) {
+      try { setUser(JSON.parse(userStr)); } catch {}
+    }
+  }, []);
 
   const navItems = [
     { label: "Overview", icon: LayoutDashboard, href: "/dashboard" },
@@ -66,11 +74,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="bg-slate-800/50 rounded-xl p-4 flex items-center gap-3 mb-4">
           <Avatar className="w-10 h-10 border border-slate-700">
             <AvatarImage src="https://github.com/shadcn.png" />
-            <AvatarFallback>DR</AvatarFallback>
+            <AvatarFallback>{user ? `${user.firstName?.[0] || ""}${user.lastName?.[0] || ""}` : "DR"}</AvatarFallback>
           </Avatar>
           <div className="flex-1 overflow-hidden">
-            <p className="text-sm font-medium text-white truncate">Dr. Smith</p>
-            <p className="text-xs text-slate-400 truncate">Cardiology</p>
+            <p className="text-sm font-medium text-white truncate">{user ? `Dr. ${user.lastName}` : "Doctor"}</p>
+            <p className="text-xs text-slate-400 truncate capitalize">{user?.specialty?.replace("-", " ") || "General"}</p>
           </div>
         </div>
         <Link href="/login">
