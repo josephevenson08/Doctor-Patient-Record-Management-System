@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import DashboardLayout from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -50,6 +50,25 @@ export default function ReferralsPage() {
     queryKey: ["/api/doctors"],
   });
 
+  const combinedDoctors = useMemo(() => {
+    const result: Array<{ id: number; firstName: string; lastName: string; specialty?: string | null }> = [...doctors];
+    try {
+      const stored = localStorage.getItem("mediportal_user");
+      if (stored) {
+        const user = JSON.parse(stored);
+        if (user && user.id && !result.some((d) => d.id === user.id)) {
+          result.push({
+            id: user.id,
+            firstName: user.firstName || "",
+            lastName: user.lastName || "",
+            specialty: user.specialty || null,
+          });
+        }
+      }
+    } catch {}
+    return result;
+  }, [doctors]);
+
   const createReferral = useMutation({
     mutationFn: (data: any) => apiRequest("POST", "/api/referrals", {
       ...data,
@@ -78,7 +97,7 @@ export default function ReferralsPage() {
   };
 
   const getDoctorLabel = (doctorId: number) => {
-    const d = doctors.find((doc) => doc.id === doctorId);
+    const d = combinedDoctors.find((doc) => doc.id === doctorId);
     return d ? `Dr. ${d.firstName} ${d.lastName}${d.specialty ? ` (${d.specialty})` : ""}` : `Doctor #${doctorId}`;
   };
 
@@ -102,7 +121,12 @@ export default function ReferralsPage() {
           <Button
             data-testid="button-create-referral"
             className="bg-blue-600 hover:bg-blue-700 text-white shadow-md"
-            onClick={() => setDialogOpen(true)}
+            onClick={() => {
+              const now = new Date();
+              const localDatetime = now.toISOString().slice(0, 16);
+              setForm({ patientId: "", referringDoctorId: "", referredDoctorId: "", dateTime: localDatetime, notes: "" });
+              setDialogOpen(true);
+            }}
           >
             <Plus className="w-4 h-4 mr-2" />
             Create Referral
@@ -219,19 +243,20 @@ export default function ReferralsPage() {
             data-testid="form-create-referral"
             onSubmit={(e) => {
               e.preventDefault();
+              if (!form.patientId || !form.referringDoctorId || !form.referredDoctorId || !form.dateTime) return;
               createReferral.mutate(form);
             }}
             className="space-y-4"
           >
             <div className="space-y-2">
-              <Label htmlFor="ref-patient">Patient</Label>
-              <Select value={form.patientId} onValueChange={(v) => setForm({ ...form, patientId: v })}>
+              <Label htmlFor="ref-patient">Patient <span className="text-red-500">*</span></Label>
+              <Select value={form.patientId} onValueChange={(v) => setForm({ ...form, patientId: v })} required>
                 <SelectTrigger data-testid="select-referral-patient">
                   <SelectValue placeholder="Select patient" />
                 </SelectTrigger>
                 <SelectContent>
                   {patients.map((p) => (
-                    <SelectItem key={p.id} value={p.id.toString()}>
+                    <SelectItem key={p.id} value={p.id.toString()} data-testid={`select-patient-option-${p.id}`}>
                       {p.firstName} {p.lastName}
                     </SelectItem>
                   ))}
@@ -240,14 +265,14 @@ export default function ReferralsPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="ref-from">Referring Doctor</Label>
-                <Select value={form.referringDoctorId} onValueChange={(v) => setForm({ ...form, referringDoctorId: v })}>
+                <Label htmlFor="ref-from">Referring Doctor <span className="text-red-500">*</span></Label>
+                <Select value={form.referringDoctorId} onValueChange={(v) => setForm({ ...form, referringDoctorId: v })} required>
                   <SelectTrigger data-testid="select-referring-doctor">
                     <SelectValue placeholder="Select doctor" />
                   </SelectTrigger>
                   <SelectContent>
-                    {doctors.map((d) => (
-                      <SelectItem key={d.id} value={d.id.toString()}>
+                    {combinedDoctors.map((d) => (
+                      <SelectItem key={d.id} value={d.id.toString()} data-testid={`select-referring-doctor-option-${d.id}`}>
                         Dr. {d.firstName} {d.lastName}
                       </SelectItem>
                     ))}
@@ -255,14 +280,14 @@ export default function ReferralsPage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="ref-to">Referred To</Label>
-                <Select value={form.referredDoctorId} onValueChange={(v) => setForm({ ...form, referredDoctorId: v })}>
+                <Label htmlFor="ref-to">Referred To <span className="text-red-500">*</span></Label>
+                <Select value={form.referredDoctorId} onValueChange={(v) => setForm({ ...form, referredDoctorId: v })} required>
                   <SelectTrigger data-testid="select-referred-doctor">
                     <SelectValue placeholder="Select doctor" />
                   </SelectTrigger>
                   <SelectContent>
-                    {doctors.map((d) => (
-                      <SelectItem key={d.id} value={d.id.toString()}>
+                    {combinedDoctors.map((d) => (
+                      <SelectItem key={d.id} value={d.id.toString()} data-testid={`select-referred-doctor-option-${d.id}`}>
                         Dr. {d.firstName} {d.lastName}
                       </SelectItem>
                     ))}
@@ -271,7 +296,7 @@ export default function ReferralsPage() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="ref-dateTime">Date & Time</Label>
+              <Label htmlFor="ref-dateTime">Date & Time <span className="text-red-500">*</span></Label>
               <Input data-testid="input-referral-datetime" id="ref-dateTime" type="datetime-local" required value={form.dateTime} onChange={(e) => setForm({ ...form, dateTime: e.target.value })} />
             </div>
             <div className="space-y-2">
@@ -280,7 +305,7 @@ export default function ReferralsPage() {
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-              <Button type="submit" data-testid="button-submit-referral" className="bg-blue-600 hover:bg-blue-700" disabled={createReferral.isPending}>
+              <Button type="submit" data-testid="button-submit-referral" className="bg-blue-600 hover:bg-blue-700" disabled={createReferral.isPending || !form.patientId || !form.referringDoctorId || !form.referredDoctorId || !form.dateTime}>
                 {createReferral.isPending ? "Creating..." : "Create Referral"}
               </Button>
             </DialogFooter>

@@ -4,6 +4,7 @@ import { Users, Calendar, Activity, AlertCircle, ArrowUpRight, ArrowDownRight } 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
 import type { Patient, Referral } from "@shared/schema";
 
 export default function DashboardHome() {
@@ -23,16 +24,12 @@ export default function DashboardHome() {
     {
       title: "Total Patients",
       value: patients.length.toLocaleString(),
-      change: `${patients.length}`,
-      trend: "up" as const,
       icon: Users,
       color: "bg-blue-500",
     },
     {
       title: "Appointments Today",
       value: "—",
-      change: "0",
-      trend: "up" as const,
       icon: Calendar,
       color: "bg-indigo-500",
     },
@@ -47,8 +44,6 @@ export default function DashboardHome() {
     {
       title: "Critical Alerts",
       value: "0",
-      change: "0",
-      trend: "down" as const,
       icon: AlertCircle,
       color: "bg-red-500",
     },
@@ -77,13 +72,15 @@ export default function DashboardHome() {
                 ) : (
                   <>
                     <div>
-                      <p className="text-sm font-medium text-slate-500">{stat.title}</p>
+                      <p className="text-sm font-medium text-slate-500" data-testid={`stat-title-${i}`}>{stat.title}</p>
                       <div className="flex items-baseline gap-2 mt-2">
                         <h3 className="text-2xl font-bold text-slate-900" data-testid={`stat-value-${i}`}>{stat.value}</h3>
-                        <span className={`text-xs font-medium flex items-center ${stat.trend === 'up' ? 'text-green-600' : 'text-red-600'}`}>
-                          {stat.trend === 'up' ? <ArrowUpRight className="w-3 h-3 mr-1" /> : <ArrowDownRight className="w-3 h-3 mr-1" />}
-                          {stat.change}
-                        </span>
+                        {'change' in stat && 'trend' in stat && (
+                          <span className={`text-xs font-medium flex items-center ${stat.trend === 'up' ? 'text-green-600' : 'text-red-600'}`}>
+                            {stat.trend === 'up' ? <ArrowUpRight className="w-3 h-3 mr-1" /> : <ArrowDownRight className="w-3 h-3 mr-1" />}
+                            {stat.change}
+                          </span>
+                        )}
                       </div>
                     </div>
                     <div className={`p-3 rounded-xl ${stat.color} bg-opacity-10`}>
@@ -97,11 +94,13 @@ export default function DashboardHome() {
         </div>
 
         <div className="grid gap-8 md:grid-cols-2">
-          {/* Upcoming Appointments */}
-          <Card className="border-slate-200 shadow-sm col-span-1">
+          {/* Recent Patients */}
+          <Card className="border-slate-200 shadow-sm col-span-1" data-testid="card-recent-patients">
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg font-semibold text-slate-900">Upcoming Appointments</CardTitle>
-              <Button variant="ghost" size="sm" className="text-blue-600">View All</Button>
+              <CardTitle className="text-lg font-semibold text-slate-900">Recent Patients</CardTitle>
+              <Link href="/dashboard/patients">
+                <Button variant="ghost" size="sm" className="text-blue-600" data-testid="link-view-all-patients">View All</Button>
+              </Link>
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
@@ -119,23 +118,21 @@ export default function DashboardHome() {
                     </div>
                   ))
                 ) : recentPatients.length === 0 ? (
-                  <p className="text-sm text-slate-500 text-center py-4" data-testid="text-no-appointments">No patients found.</p>
+                  <div className="text-center py-8" data-testid="text-no-recent-patients">
+                    <Users className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+                    <p className="text-sm text-slate-500">No patients added yet.</p>
+                  </div>
                 ) : (
                   recentPatients.map((patient) => (
-                    <div key={patient.id} className="flex items-center justify-between group" data-testid={`appointment-row-${patient.id}`}>
+                    <div key={patient.id} className="flex items-center justify-between group" data-testid={`recent-patient-row-${patient.id}`}>
                       <div className="flex items-center gap-4">
                         <div className="w-2 h-2 rounded-full bg-blue-500 group-hover:scale-125 transition-transform" />
                         <div>
-                          <p className="font-medium text-slate-900">{patient.firstName} {patient.lastName}</p>
-                          <p className="text-sm text-slate-500">{patient.gender || "Patient"}</p>
+                          <p className="font-medium text-slate-900" data-testid={`text-patient-name-${patient.id}`}>{patient.firstName} {patient.lastName}</p>
+                          <p className="text-sm text-slate-500" data-testid={`text-patient-gender-${patient.id}`}>{patient.gender || "—"}</p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-medium text-slate-900">{patient.phone || "—"}</p>
-                        <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700">
-                          Active
-                        </span>
-                      </div>
+                      <p className="font-medium text-slate-900" data-testid={`text-patient-phone-${patient.id}`}>{patient.phone || "—"}</p>
                     </div>
                   ))
                 )}

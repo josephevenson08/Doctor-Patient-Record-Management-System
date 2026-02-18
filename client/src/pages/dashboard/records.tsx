@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import DashboardLayout from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -64,12 +64,48 @@ export default function RecordsPage() {
     queryKey: ["/api/doctors"],
   });
 
+  const combinedDoctors = useMemo(() => {
+    const list = [...doctors];
+    try {
+      const raw = localStorage.getItem("mediportal_user");
+      if (raw) {
+        const user = JSON.parse(raw);
+        const alreadyExists = list.some((d) => d.id === user.id);
+        if (!alreadyExists && user.firstName && user.lastName) {
+          list.push({
+            id: -1,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            specialty: user.specialty || "",
+          } as Doctor);
+        }
+      }
+    } catch {}
+    return list;
+  }, [doctors]);
+
   const createRecord = useMutation({
-    mutationFn: (data: any) => apiRequest("POST", "/api/records", {
-      ...data,
-      patientId: parseInt(data.patientId),
-      doctorId: parseInt(data.doctorId),
-    }),
+    mutationFn: (data: any) => {
+      let doctorId = parseInt(data.doctorId);
+      if (doctorId === -1) {
+        try {
+          const raw = localStorage.getItem("mediportal_user");
+          if (raw) {
+            const user = JSON.parse(raw);
+            doctorId = user.id || 1;
+          } else {
+            doctorId = 1;
+          }
+        } catch {
+          doctorId = 1;
+        }
+      }
+      return apiRequest("POST", "/api/records", {
+        ...data,
+        patientId: parseInt(data.patientId),
+        doctorId,
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/records"] });
       setDialogOpen(false);
@@ -93,7 +129,7 @@ export default function RecordsPage() {
   };
 
   const getDoctorName = (doctorId: number) => {
-    const d = doctors.find((doc) => doc.id === doctorId);
+    const d = combinedDoctors.find((doc) => doc.id === doctorId) || doctors.find((doc) => doc.id === doctorId);
     return d ? `Dr. ${d.firstName} ${d.lastName}` : `Doctor #${doctorId}`;
   };
 
@@ -272,20 +308,21 @@ export default function RecordsPage() {
             data-testid="form-new-record"
             onSubmit={(e) => {
               e.preventDefault();
+              if (!form.patientId || !form.doctorId || !form.visitType || !form.diagnosis) return;
               createRecord.mutate(form);
             }}
             className="space-y-4"
           >
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="rec-patientId">Patient</Label>
-                <Select value={form.patientId} onValueChange={(v) => setForm({ ...form, patientId: v })}>
+                <Label htmlFor="rec-patientId">Patient <span className="text-red-500">*</span></Label>
+                <Select value={form.patientId} onValueChange={(v) => setForm({ ...form, patientId: v })} required>
                   <SelectTrigger data-testid="select-record-patient">
                     <SelectValue placeholder="Select patient" />
                   </SelectTrigger>
                   <SelectContent>
                     {patients.map((p) => (
-                      <SelectItem key={p.id} value={p.id.toString()}>
+                      <SelectItem key={p.id} value={p.id.toString()} data-testid={`select-patient-option-${p.id}`}>
                         {p.firstName} {p.lastName}
                       </SelectItem>
                     ))}
@@ -293,14 +330,14 @@ export default function RecordsPage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="rec-doctorId">Doctor</Label>
-                <Select value={form.doctorId} onValueChange={(v) => setForm({ ...form, doctorId: v })}>
+                <Label htmlFor="rec-doctorId">Doctor <span className="text-red-500">*</span></Label>
+                <Select value={form.doctorId} onValueChange={(v) => setForm({ ...form, doctorId: v })} required>
                   <SelectTrigger data-testid="select-record-doctor">
                     <SelectValue placeholder="Select doctor" />
                   </SelectTrigger>
                   <SelectContent>
-                    {doctors.map((d) => (
-                      <SelectItem key={d.id} value={d.id.toString()}>
+                    {combinedDoctors.map((d) => (
+                      <SelectItem key={d.id} value={d.id.toString()} data-testid={`select-doctor-option-${d.id}`}>
                         Dr. {d.firstName} {d.lastName}
                       </SelectItem>
                     ))}
@@ -310,12 +347,12 @@ export default function RecordsPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="rec-visitType">Visit Type</Label>
-                <Input data-testid="input-visitType" id="rec-visitType" value={form.visitType} onChange={(e) => setForm({ ...form, visitType: e.target.value })} placeholder="e.g. Check-up" />
+                <Label htmlFor="rec-visitType">Visit Type <span className="text-red-500">*</span></Label>
+                <Input data-testid="input-visitType" id="rec-visitType" value={form.visitType} onChange={(e) => setForm({ ...form, visitType: e.target.value })} placeholder="e.g. Check-up" required />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="rec-diagnosis">Diagnosis</Label>
-                <Input data-testid="input-diagnosis" id="rec-diagnosis" value={form.diagnosis} onChange={(e) => setForm({ ...form, diagnosis: e.target.value })} />
+                <Label htmlFor="rec-diagnosis">Diagnosis <span className="text-red-500">*</span></Label>
+                <Input data-testid="input-diagnosis" id="rec-diagnosis" value={form.diagnosis} onChange={(e) => setForm({ ...form, diagnosis: e.target.value })} required />
               </div>
             </div>
             <div className="space-y-2">
