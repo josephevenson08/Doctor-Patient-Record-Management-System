@@ -13,6 +13,7 @@ import DashboardHome from "@/pages/dashboard/home";
 import PatientsPage from "@/pages/dashboard/patients";
 import RecordsPage from "@/pages/dashboard/records";
 import ReferralsPage from "@/pages/dashboard/referrals";
+import SettingsPage from "@/pages/dashboard/settings";
 
 function Router() {
   return (
@@ -28,6 +29,7 @@ function Router() {
       <Route path="/dashboard/patients" component={PatientsPage} />
       <Route path="/dashboard/records" component={RecordsPage} />
       <Route path="/dashboard/referrals" component={ReferralsPage} />
+      <Route path="/dashboard/settings" component={SettingsPage} />
       
       <Route component={NotFound} />
     </Switch>

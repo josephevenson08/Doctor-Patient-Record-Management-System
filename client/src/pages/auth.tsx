@@ -21,8 +21,10 @@ export default function AuthPage() {
     e.preventDefault();
     setIsLoading(true);
     try {
-      await apiRequest("POST", "/api/auth/login", { username, password });
-      setLocation("/dashboard");
+      const res = await apiRequest("POST", "/api/auth/login", { username, password });
+      const user = await res.json();
+      localStorage.setItem("mediportal_user", JSON.stringify(user));
+      setLocation("/mfa");
     } catch (error: any) {
       const message = error?.message || "Login failed";
       if (message.startsWith("401:")) {
