@@ -45,7 +45,8 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
-  // Users
+
+  // ── Users ──────────────────────────────────────────────
   async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
@@ -57,11 +58,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(user: InsertUser): Promise<User> {
-    const [created] = await db.insert(users).values(user).returning();
-    return created;
+    const [result] = await db.insert(users).values(user);
+    const created = await this.getUser((result as any).insertId);
+    return created!;
   }
 
-  // Doctors
+  // ── Doctors ────────────────────────────────────────────
   async getDoctors(): Promise<Doctor[]> {
     return db.select().from(doctors);
   }
@@ -72,21 +74,22 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createDoctor(doctor: InsertDoctor): Promise<Doctor> {
-    const [created] = await db.insert(doctors).values(doctor).returning();
-    return created;
+    const [result] = await db.insert(doctors).values(doctor);
+    const created = await this.getDoctor((result as any).insertId);
+    return created!;
   }
 
   async updateDoctor(id: number, doctor: Partial<InsertDoctor>): Promise<Doctor | undefined> {
-    const [updated] = await db.update(doctors).set(doctor).where(eq(doctors.id, id)).returning();
-    return updated;
+    await db.update(doctors).set(doctor).where(eq(doctors.id, id));
+    return this.getDoctor(id);
   }
 
   async deleteDoctor(id: number): Promise<boolean> {
-    const result = await db.delete(doctors).where(eq(doctors.id, id)).returning();
-    return result.length > 0;
+    const [result] = await db.delete(doctors).where(eq(doctors.id, id));
+    return (result as any).affectedRows > 0;
   }
 
-  // Patients
+  // ── Patients ───────────────────────────────────────────
   async getPatients(): Promise<Patient[]> {
     return db.select().from(patients);
   }
@@ -97,21 +100,22 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createPatient(patient: InsertPatient): Promise<Patient> {
-    const [created] = await db.insert(patients).values(patient).returning();
-    return created;
+    const [result] = await db.insert(patients).values(patient);
+    const created = await this.getPatient((result as any).insertId);
+    return created!;
   }
 
   async updatePatient(id: number, patient: Partial<InsertPatient>): Promise<Patient | undefined> {
-    const [updated] = await db.update(patients).set(patient).where(eq(patients.id, id)).returning();
-    return updated;
+    await db.update(patients).set(patient).where(eq(patients.id, id));
+    return this.getPatient(id);
   }
 
   async deletePatient(id: number): Promise<boolean> {
-    const result = await db.delete(patients).where(eq(patients.id, id)).returning();
-    return result.length > 0;
+    const [result] = await db.delete(patients).where(eq(patients.id, id));
+    return (result as any).affectedRows > 0;
   }
 
-  // Medical Records
+  // ── Medical Records ────────────────────────────────────
   async getMedicalRecords(): Promise<MedicalRecord[]> {
     return db.select().from(medicalRecords);
   }
@@ -126,21 +130,22 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createMedicalRecord(record: InsertMedicalRecord): Promise<MedicalRecord> {
-    const [created] = await db.insert(medicalRecords).values(record).returning();
-    return created;
+    const [result] = await db.insert(medicalRecords).values(record);
+    const created = await this.getMedicalRecord((result as any).insertId);
+    return created!;
   }
 
   async updateMedicalRecord(id: number, record: Partial<InsertMedicalRecord>): Promise<MedicalRecord | undefined> {
-    const [updated] = await db.update(medicalRecords).set(record).where(eq(medicalRecords.id, id)).returning();
-    return updated;
+    await db.update(medicalRecords).set(record).where(eq(medicalRecords.id, id));
+    return this.getMedicalRecord(id);
   }
 
   async deleteMedicalRecord(id: number): Promise<boolean> {
-    const result = await db.delete(medicalRecords).where(eq(medicalRecords.id, id)).returning();
-    return result.length > 0;
+    const [result] = await db.delete(medicalRecords).where(eq(medicalRecords.id, id));
+    return (result as any).affectedRows > 0;
   }
 
-  // Referrals
+  // ── Referrals ──────────────────────────────────────────
   async getReferrals(): Promise<Referral[]> {
     return db.select().from(referrals);
   }
@@ -151,18 +156,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createReferral(referral: InsertReferral): Promise<Referral> {
-    const [created] = await db.insert(referrals).values(referral).returning();
-    return created;
+    const [result] = await db.insert(referrals).values(referral);
+    const created = await this.getReferral((result as any).insertId);
+    return created!;
   }
 
   async updateReferral(id: number, referral: Partial<InsertReferral>): Promise<Referral | undefined> {
-    const [updated] = await db.update(referrals).set(referral).where(eq(referrals.id, id)).returning();
-    return updated;
+    await db.update(referrals).set(referral).where(eq(referrals.id, id));
+    return this.getReferral(id);
   }
 
   async deleteReferral(id: number): Promise<boolean> {
-    const result = await db.delete(referrals).where(eq(referrals.id, id)).returning();
-    return result.length > 0;
+    const [result] = await db.delete(referrals).where(eq(referrals.id, id));
+    return (result as any).affectedRows > 0;
   }
 }
 

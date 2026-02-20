@@ -108,15 +108,16 @@ export default function MfaPage() {
                   data-testid="input-otp"
                 >
                   <InputOTPGroup className="gap-2">
-                    <InputOTPSlot index={0} className="h-12 w-10 border-slate-200 bg-slate-50 focus:bg-white focus:border-primary transition-all duration-200 shadow-sm rounded-md" />
-                    <InputOTPSlot index={1} className="h-12 w-10 border-slate-200 bg-slate-50 focus:bg-white focus:border-primary transition-all duration-200 shadow-sm rounded-md" />
-                    <InputOTPSlot index={2} className="h-12 w-10 border-slate-200 bg-slate-50 focus:bg-white focus:border-primary transition-all duration-200 shadow-sm rounded-md" />
+                    {/* Dark border on each OTP slot, thicker when focused */}
+                    <InputOTPSlot index={0} className="h-12 w-10 border-2 border-slate-700 bg-slate-50 focus:bg-white focus:border-primary transition-all duration-200 shadow-sm rounded-md text-slate-900 font-semibold" />
+                    <InputOTPSlot index={1} className="h-12 w-10 border-2 border-slate-700 bg-slate-50 focus:bg-white focus:border-primary transition-all duration-200 shadow-sm rounded-md text-slate-900 font-semibold" />
+                    <InputOTPSlot index={2} className="h-12 w-10 border-2 border-slate-700 bg-slate-50 focus:bg-white focus:border-primary transition-all duration-200 shadow-sm rounded-md text-slate-900 font-semibold" />
                   </InputOTPGroup>
                   <div className="w-4" />
                   <InputOTPGroup className="gap-2">
-                    <InputOTPSlot index={3} className="h-12 w-10 border-slate-200 bg-slate-50 focus:bg-white focus:border-primary transition-all duration-200 shadow-sm rounded-md" />
-                    <InputOTPSlot index={4} className="h-12 w-10 border-slate-200 bg-slate-50 focus:bg-white focus:border-primary transition-all duration-200 shadow-sm rounded-md" />
-                    <InputOTPSlot index={5} className="h-12 w-10 border-slate-200 bg-slate-50 focus:bg-white focus:border-primary transition-all duration-200 shadow-sm rounded-md" />
+                    <InputOTPSlot index={3} className="h-12 w-10 border-2 border-slate-700 bg-slate-50 focus:bg-white focus:border-primary transition-all duration-200 shadow-sm rounded-md text-slate-900 font-semibold" />
+                    <InputOTPSlot index={4} className="h-12 w-10 border-2 border-slate-700 bg-slate-50 focus:bg-white focus:border-primary transition-all duration-200 shadow-sm rounded-md text-slate-900 font-semibold" />
+                    <InputOTPSlot index={5} className="h-12 w-10 border-2 border-slate-700 bg-slate-50 focus:bg-white focus:border-primary transition-all duration-200 shadow-sm rounded-md text-slate-900 font-semibold" />
                   </InputOTPGroup>
                 </InputOTP>
               </div>

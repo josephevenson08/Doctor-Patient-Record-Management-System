@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link, useLocation } from "wouter";
 import { ArrowRight, UserPlus, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,13 +15,30 @@ import {
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
+// Password strength checker
+function getPasswordStrength(password: string): { score: number; label: string; color: string; barColor: string } {
+  if (!password) return { score: 0, label: "", color: "text-slate-400", barColor: "bg-slate-200" };
+
+  let score = 0;
+  if (password.length >= 8) score++;
+  if (password.length >= 12) score++;
+  if (/[A-Z]/.test(password)) score++;
+  if (/[0-9]/.test(password)) score++;
+  if (/[^A-Za-z0-9]/.test(password)) score++;
+
+  if (score <= 1) return { score, label: "Very Weak", color: "text-red-600", barColor: "bg-red-500" };
+  if (score === 2) return { score, label: "Weak", color: "text-orange-500", barColor: "bg-orange-400" };
+  if (score === 3) return { score, label: "Fair", color: "text-yellow-600", barColor: "bg-yellow-400" };
+  if (score === 4) return { score, label: "Strong", color: "text-blue-600", barColor: "bg-blue-500" };
+  return { score, label: "Very Strong", color: "text-green-600", barColor: "bg-green-500" };
+}
+
 export default function SignupPage() {
   const [, setLocation] = useLocation();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   
-  // Form state
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -32,6 +49,8 @@ export default function SignupPage() {
     confirmPassword: "",
     specialty: ""
   });
+
+  const passwordStrength = useMemo(() => getPasswordStrength(formData.password), [formData.password]);
 
   const formatPhoneNumber = (value: string) => {
     const digits = value.replace(/\D/g, "");
@@ -101,7 +120,6 @@ export default function SignupPage() {
     <div className="min-h-screen flex items-center justify-center p-4 py-8">
       <Card className="w-full max-w-[500px] shadow-md border-slate-200 bg-white">
         <CardHeader className="space-y-4 flex flex-col items-center text-center pt-8 pb-2">
-          {/* Icon Placeholder */}
           <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-2">
             <UserPlus className="w-8 h-8 text-primary" />
           </div>
@@ -212,38 +230,69 @@ export default function SignupPage() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-slate-600 font-medium">Password</Label>
-                <div className="relative">
+            {/* Password fields with strength gauge */}
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="password" className="text-slate-600 font-medium">Password</Label>
+                  <div className="relative">
+                    <Input 
+                      id="password" 
+                      type={showPassword ? "text" : "password"}
+                      className="bg-slate-50 border-slate-200 focus:bg-white pr-8"
+                      value={formData.password}
+                      onChange={handleChange}
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    >
+                      {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                    </button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword" className="text-slate-600 font-medium">Confirm</Label>
                   <Input 
-                    id="password" 
+                    id="confirmPassword" 
                     type={showPassword ? "text" : "password"}
-                    className="bg-slate-50 border-slate-200 focus:bg-white pr-8"
-                    value={formData.password}
+                    className="bg-slate-50 border-slate-200 focus:bg-white"
+                    value={formData.confirmPassword}
                     onChange={handleChange}
                     required
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                  >
-                    {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
-                  </button>
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword" className="text-slate-600 font-medium">Confirm</Label>
-                <Input 
-                  id="confirmPassword" 
-                  type={showPassword ? "text" : "password"}
-                  className="bg-slate-50 border-slate-200 focus:bg-white"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
+
+              {/* Password Strength Gauge — only shows once user starts typing */}
+              {formData.password.length > 0 && (
+                <div className="space-y-1.5">
+                  <div className="flex gap-1">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <div
+                        key={i}
+                        className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${
+                          i <= passwordStrength.score
+                            ? passwordStrength.barColor
+                            : "bg-slate-200"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className={`text-xs font-medium ${passwordStrength.color}`}>
+                      {passwordStrength.label}
+                    </span>
+                    <span className="text-xs text-slate-400">
+                      {passwordStrength.score < 3 && "Add uppercase, numbers & symbols"}
+                      {passwordStrength.score === 3 && "Add numbers or symbols to strengthen"}
+                      {passwordStrength.score >= 4 && "Great password!"}
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
 
             <Button 

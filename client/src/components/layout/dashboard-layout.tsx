@@ -9,14 +9,11 @@ import {
   Bell,
   Search,
   Menu,
-  X,
-  CheckCircle2,
   Clock,
+  CheckCircle2,
   UserPlus,
   AlertCircle,
-  Info,
   ShieldCheck,
-  RefreshCw,
   ArrowRightLeft
 } from "lucide-react";
 import { useState, useEffect, useRef, useMemo } from "react";
@@ -35,6 +32,8 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { useQuery } from "@tanstack/react-query";
 import type { Patient, Referral, Doctor } from "@shared/schema";
@@ -44,8 +43,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
   const searchRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -53,6 +54,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (userStr) {
       try { setUser(JSON.parse(userStr)); } catch {}
     }
+  }, []);
+
+  // Live clock — updates every second
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
   }, []);
 
   useEffect(() => {
@@ -99,6 +106,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       .filter((p) => `${p.firstName} ${p.lastName}`.toLowerCase().includes(q))
       .slice(0, 6);
   }, [searchQuery, allPatients]);
+
+  const formattedTime = currentTime.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  });
+
+  const handleSignOut = () => {
+    localStorage.removeItem("mediportal_user");
+    navigate("/login");
+  };
 
   const navItems = [
     { label: "Overview", icon: LayoutDashboard, href: "/dashboard" },
@@ -152,12 +171,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <p className="text-xs text-slate-400 truncate capitalize">{user?.specialty?.replace("-", " ") || "General"}</p>
           </div>
         </div>
-        <Link href="/login">
-          <Button variant="ghost" className="w-full justify-start text-slate-400 hover:text-red-400 hover:bg-red-950/30 gap-2">
-            <LogOut className="w-4 h-4" />
-            Sign Out
-          </Button>
-        </Link>
+        {/* Sign Out button now opens confirmation dialog instead of navigating directly */}
+        <Button
+          variant="ghost"
+          className="w-full justify-start text-slate-400 hover:text-red-400 hover:bg-red-950/30 gap-2"
+          onClick={() => setLogoutDialogOpen(true)}
+        >
+          <LogOut className="w-4 h-4" />
+          Sign Out
+        </Button>
       </div>
     </div>
   );
@@ -233,6 +255,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Live Clock */}
+            <div className="hidden sm:flex items-center gap-1.5 text-sm font-medium text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5">
+              <Clock className="w-4 h-4 text-slate-400" />
+              <span className="tabular-nums">{formattedTime}</span>
+            </div>
+
+            {/* Notifications */}
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative text-slate-500 hover:text-blue-600 hover:bg-blue-50" data-testid="button-notifications">
@@ -315,6 +344,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       </main>
 
+      {/* All Notifications Dialog */}
       <Dialog open={notificationsOpen} onOpenChange={setNotificationsOpen}>
         <DialogContent className="max-w-lg max-h-[80vh] overflow-hidden flex flex-col" data-testid="dialog-all-notifications">
           <DialogHeader>
@@ -374,6 +404,32 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </div>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Logout Confirmation Dialog */}
+      <Dialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <LogOut className="w-5 h-5 text-red-500" />
+              Sign Out
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to sign out? You will need to log back in to access MediPortal.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setLogoutDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              className="bg-red-600 hover:bg-red-700 text-white"
+              onClick={handleSignOut}
+            >
+              Yes, Sign Out
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
